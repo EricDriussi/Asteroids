@@ -1,6 +1,8 @@
 package app;
 
 import java.awt.Polygon;
+import java.awt.Rectangle;
+import java.util.ArrayList;
 
 //Extending the Polygon class because I'm drawing Polygons
 
@@ -12,9 +14,13 @@ public class Asteroid extends Polygon {
 	int xDir = 1;
 	int yDir = 1;
 
+	public boolean onScreen = false;
 
-	int width = MainFrame.width;
-	int height = MainFrame.height;
+	int width = 26;
+	int height = 31;
+
+	int frameWidth = MainFrame.width;
+	int frameHeight = MainFrame.height;
 
 	// Will hold the x & y coordinates for the Polygons
 
@@ -24,10 +30,13 @@ public class Asteroid extends Polygon {
 	public static int[] sPolyXArray = { 10, 17, 26, 34, 27, 36, 26, 14, 8, 1, 5, 1, 10 };
 	public static int[] sPolyYArray = { 0, 5, 1, 8, 13, 20, 31, 28, 31, 22, 16, 7, 0 };
 
+	public static ArrayList<Asteroid> list = new ArrayList<>();
+
 	public Asteroid(int[] xArray, int[] yArray, int points, int randomX, int randomY) {
 
 		super(xArray, yArray, points);
 
+		onScreen = true;
 
 		this.xDir = (int) (Math.random() * 4 + 1);
 
@@ -39,8 +48,51 @@ public class Asteroid extends Polygon {
 		this.y = randomY;
 
 	}
+	
+	public Rectangle getBounds() {
+		return new Rectangle(super.xpoints[0], super.ypoints[0], width, height);
+	}
 
-	public void move() {
+	public void move(SpaceShip ship, ArrayList<Gun> gunList) {
+		
+		Rectangle toCheck = this.getBounds();
+		
+		for (Asteroid i : list) {
+			
+			Rectangle otherAsteroid = i.getBounds();
+			
+			if (i != this && otherAsteroid.intersects(toCheck)) {
+				
+					int tempX = this.xDir;
+					int tempY = this.yDir;
+					
+					this.xDir = i.xDir;
+					this.yDir = i.yDir;
+					
+					i.xDir = tempX;
+					i.yDir = tempY;
+				
+			}
+			
+			Rectangle shipBox = ship.getBounds();
+			if (otherAsteroid.intersects(shipBox)) {
+				
+				ship.setXCenter(frameWidth/2);
+				ship.setYCenter(frameHeight/2);
+				
+				ship.setxVel(0);
+				ship.setyVel(0);
+				
+			}
+			for (Gun gun : gunList) {
+				if (gun.onScreen) {
+					if (otherAsteroid.contains(gun.getxCenter(), gun.getyCenter())) {
+						i.onScreen = false;
+						gun.onScreen = false;
+					}
+				}
+			}
+		}
 
 
 		int uLeftXPos = super.xpoints[0];
@@ -48,10 +100,10 @@ public class Asteroid extends Polygon {
 		int uLeftYPos = super.ypoints[0];
 
 
-		if (uLeftXPos < 0 || (uLeftXPos + 25) > width)
+		if (uLeftXPos < 0 || (uLeftXPos + 25) > frameWidth)
 			xDir = -xDir;
 
-		if (uLeftYPos < 0 || (uLeftYPos + 50) > height)
+		if (uLeftYPos < 0 || (uLeftYPos + 50) > frameHeight)
 			yDir = -yDir;
 
 
@@ -95,5 +147,6 @@ public class Asteroid extends Polygon {
 		return tempPolyYArray;
 
 	}
+
 
 }
