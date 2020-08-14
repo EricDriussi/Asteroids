@@ -3,43 +3,66 @@ package app;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
-import java.awt.event.KeyEvent;
 import java.awt.geom.AffineTransform;
-import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
 import javax.swing.JComponent;
+import javax.swing.KeyStroke;
 
 @SuppressWarnings("serial")
 public class GamePanel extends JComponent {
 
-	public static ArrayList<Asteroid> asteroidList = new ArrayList<>();
-	public static ArrayList<Gun> gunList = new ArrayList<>();
-
-	int[] xArray = Asteroid.sPolyXArray;
-	int[] yArray = Asteroid.sPolyYArray;
+	static CopyOnWriteArrayList<Asteroid> asteroidList = new CopyOnWriteArrayList<>();
+	static CopyOnWriteArrayList<Gun> gunList = new CopyOnWriteArrayList<>();
+	static SpaceShip ship = new SpaceShip();
 
 	int width = MainFrame.width;
 	int height = MainFrame.height;
 
-	SpaceShip ship = new SpaceShip();
-
 	public GamePanel() {
 
 		for (int i = 0; i < 10; i++) {
-			int randomX = (int) (Math.random() * (MainFrame.width - 40) + 1);
-			int randomY = (int) (Math.random() * (MainFrame.height - 40) + 1);
+			int randomX = (int) (Math.random() * (width - 40) + 1);
+			int randomY = (int) (Math.random() * (height - 40) + 1);
 
 			asteroidList.add(new Asteroid(Asteroid.getpolyXArray(randomX), Asteroid.getpolyYArray(randomY), 13, randomX,
 					randomY));
-			Asteroid.list = asteroidList;
 		}
+
+		this.setActionMap(myActionMap());
+		this.setInputMap(JComponent.WHEN_FOCUSED, myInputMap());
 
 	}
 
+	private InputMap myInputMap() {
+		InputMap out = new InputMap();
+		out.put(KeyStroke.getKeyStroke("W"), "forewards");
+		out.put(KeyStroke.getKeyStroke("S"), "backwards");
+		out.put(KeyStroke.getKeyStroke("D"), "right");
+		out.put(KeyStroke.getKeyStroke("A"), "left");
+		out.put(KeyStroke.getKeyStroke("SPACE"), "fire");
+
+		return out;
+	}
+
+	private ActionMap myActionMap() {
+		ActionMap out = new ActionMap();
+		out.put("backwards", ship.goBack());
+		out.put("forewards", ship.go());
+		out.put("right", ship.rightT());
+		out.put("left", ship.leftT());
+		out.put("fire", ship.fire());
+
+		return out;
+	}
+
 	@Override
-	public void paint(Graphics g) {
-		// super.paint(g);
+	public void paintComponent(Graphics g) {
+		super.paintComponent(g);
 
 		Graphics2D settings = (Graphics2D) g;
 
@@ -52,44 +75,12 @@ public class GamePanel extends JComponent {
 		settings.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		settings.setPaint(Color.WHITE);
 
+		checkCol();
+
 		for (Asteroid as : asteroidList) {
-			if (as.onScreen) {
 
-				as.move(ship, gunList);
-				settings.draw(as);
-			}
+			settings.draw(as);
 		}
-
-		if (MainFrame.keyHeld && MainFrame.keyCode == KeyEvent.VK_D) {
-
-			ship.increaseRotationAngle();
-
-		} else if (MainFrame.keyHeld && MainFrame.keyCode == KeyEvent.VK_A) {
-
-			ship.decreaseRotationAngle();
-
-		} else if (MainFrame.keyHeld && MainFrame.keyCode == KeyEvent.VK_W) {
-
-			ship.setMovingAngle(ship.getRotationAngle());
-
-			ship.increaseXVel(ship.moveAngleX(ship.getMovingAngle()) * 0.1);
-			ship.increaseYVel(ship.moveAngleY(ship.getMovingAngle()) * 0.1);
-
-		} else if (MainFrame.keyHeld && MainFrame.keyCode == KeyEvent.VK_S) {
-
-			ship.setMovingAngle(ship.getRotationAngle());
-
-			ship.decreaseXVel(ship.moveAngleX(ship.getMovingAngle()) * 0.1);
-			ship.decreaseYVel(ship.moveAngleY(ship.getMovingAngle()) * 0.1);
-			
-		}else if(MainFrame.keyHeld && MainFrame.keyCode == KeyEvent.VK_SPACE) {
-			
-			gunList.add(new Gun(ship.getShipNoseX(), ship.getShipNosey(), ship.getRotationAngle()));
-			
-			System.out.println("yes");
-			
-		}
-		
 
 		ship.move();
 
@@ -99,52 +90,60 @@ public class GamePanel extends JComponent {
 		settings.rotate(Math.toRadians(ship.getRotationAngle()));
 
 		settings.draw(ship);
-		
+
 		for (Gun gun : gunList) {
 			gun.move();
-			if (gun.onScreen) {
-				settings.setTransform(identity);
+			settings.setTransform(identity);
 
-				settings.translate(gun.getxCenter(), gun.getyCenter());
+			settings.translate(gun.getXCenter(), gun.getYCenter());
 
-				settings.draw(gun);
-			}
+			settings.draw(gun);
 		}
 
 	}
 
+	void checkCol() {
+		for (Asteroid check : GamePanel.asteroidList) {
+
+			Rectangle checkBounds = check.getBounds();
+
+			for (Asteroid otherAsteroid : GamePanel.asteroidList) {
+
+				Rectangle otherBounds = otherAsteroid.getBounds();
+
+				if (otherAsteroid != check && otherBounds.intersects(checkBounds)) {
+
+
+					int tempX = check.xDir;
+					int tempY = check.yDir;
+
+					check.xDir = otherAsteroid.xDir;
+					check.yDir = otherAsteroid.yDir;
+
+					otherAsteroid.xDir = tempX;
+					otherAsteroid.yDir = tempY;
+
+				}
+
+			}
+			check.move();
+			
+			Rectangle shipBox = GamePanel.ship.getBounds();
+			if (checkBounds.intersects(shipBox)) {
+
+				GamePanel.ship.resetShip();
+
+				GamePanel.ship.setxVel(0);
+				GamePanel.ship.setyVel(0);
+
+			}
+			
+			for (Gun gun : GamePanel.gunList) {
+				if (checkBounds.contains(gun.getXCenter(), gun.getYCenter())) {
+					GamePanel.gunList.remove(gun);
+					GamePanel.asteroidList.remove(check);
+				}
+			}
+		}
+	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

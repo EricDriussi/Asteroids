@@ -1,69 +1,59 @@
 package app;
 
-import java.awt.Polygon;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
 
-public class SpaceShip extends Polygon {
+import javax.swing.AbstractAction;
 
-	private double xVel = 0, yVel = 0;
+@SuppressWarnings("serial")
+public class SpaceShip extends SpaceStuff {
 
-	int panelWidth = MainFrame.width;
-	int panelHeight = MainFrame.height;
-
-	private double xCenter = panelWidth / 2, yCenter = panelHeight / 2;
-
-	public static int[] polyXArray = { -13, 14, -13, -5, -13 };
+	public static int[] polyXArray = { -13, 13, -13, -5, -13 };
 	public static int[] polyYArray = { -15, 0, 15, 0, -15 };
 
-	private int width = 27, height = 31;
+	private int width = 26, height = 30;
 
-	private double x = xCenter + this.polyXArray[0];
-	private double y = yCenter + this.polyYArray[0];
-
-	private double rotationAngle = 0, movingAngle = 0;
+	private double rotationAngle = 0;
 
 	public SpaceShip() {
-		super(polyXArray, polyYArray, 5);
+		super(polyXArray, polyYArray, polyXArray.length);
+		resetShip();
 	}
 
-	public void increaseX(double x) {
-		xCenter += x;
+	@Override
+	public void move() {
+
+		incrementX(xVel);
+
+		if (xCenter < 0) {
+			xCenter = panelWidth;
+		} else if (xCenter > panelWidth) {
+			xCenter = 0;
+		}
+
+		incrementY(yVel);
+		if (yCenter < 0) {
+			yCenter = panelHeight;
+		} else if (yCenter > panelHeight) {
+			yCenter = 0;
+		}
 	}
 
-	public void increaseY(double y) {
-		yCenter += y;
+	public void resetShip() {
+		xCenter = panelWidth / 2;
+		yCenter = panelHeight / 2;
+
 	}
 
-	public void increaseXVel(double x) {
-		xVel += x;
+	public void moreSpeed(double n) {
+		xVel += moveAngleX(movingAngle) * 0.1;
+		yVel += moveAngleY(movingAngle) * 0.1;
 	}
 
-	public void increaseYVel(double y) {
-		yVel += y;
-	}
+	public void lessSpeed(double n) {
+		xVel -= moveAngleX(movingAngle) * 0.1;
+		yVel -= moveAngleY(movingAngle) * 0.1;
 
-	public void decreaseXVel(double x) {
-		xVel -= x;
-	}
-
-	public void decreaseYVel(double y) {
-		yVel -= y;
-	}
-
-	public void increaseMovAngle(double num) {
-		movingAngle += num;
-	}
-
-	public void decreaseMovAngle(double num) {
-		movingAngle -= num;
-	}
-
-	public double moveAngleX(double num) {
-		return (double) (Math.cos(num * Math.PI / 180));
-	}
-
-	public double moveAngleY(double num) {
-		return (double) (Math.sin(num * Math.PI / 180));
 	}
 
 	public void increaseRotationAngle() {
@@ -82,8 +72,9 @@ public class SpaceShip extends Polygon {
 		}
 	}
 
+	@Override
 	public Rectangle getBounds() {
-		return new Rectangle((int) xCenter - 14, (int) yCenter - 14, width, height);
+		return new Rectangle((int) xCenter - (width / 2), (int) yCenter - (height / 2), width, height);
 	}
 
 	public double getShipNoseX() {
@@ -94,100 +85,76 @@ public class SpaceShip extends Polygon {
 		return this.yCenter + Math.sin(rotationAngle) * 14;
 	}
 
-	public void move() {
-
-		increaseX(xVel);
-
-		if (xCenter < 0) {
-			xCenter = panelWidth;
-		} else if (xCenter > panelWidth) {
-			xCenter = 0;
-		}
-
-		increaseY(yVel);
-		if (yCenter < 0) {
-			yCenter = panelHeight;
-		} else if (yCenter > panelHeight) {
-			yCenter = 0;
-		}
-	}
-
-	public double getXCenter() {
-		return xCenter;
-	}
-
-	public double getYCenter() {
-		return yCenter;
-	}
-
-	public void setXCenter(double x) {
-		xCenter = x;
-	}
-
-	public void setYCenter(double y) {yCenter = y;}
-
 	public double getRotationAngle() {
 		return rotationAngle;
-	}
-
-	public void setRotationAngle(double rotationAngle) {
-		this.rotationAngle = rotationAngle;
-	}
-
-	public double getMovingAngle() {
-		return movingAngle;
-	}
-
-	public void setMovingAngle(double movingAngle) {
-		this.movingAngle = movingAngle;
-	}
-
-	public double getxVel() {
-		return xVel;
 	}
 
 	public void setxVel(double xVel) {
 		this.xVel = xVel;
 	}
 
-	public double getyVel() {
-		return yVel;
-	}
-
 	public void setyVel(double yVel) {
 		this.yVel = yVel;
 	}
 
-	public int getWidth() {
-		return width;
+	public AbstractAction goBack() {
+		return new AbstractAction() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+
+				movingAngle = rotationAngle;
+				lessSpeed(movingAngle);
+
+			}
+		};
 	}
 
-	public void setWidth(int width) {
-		this.width = width;
+	public AbstractAction go() {
+		return new AbstractAction() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+
+				movingAngle = rotationAngle;
+				moreSpeed(movingAngle);
+
+			}
+		};
 	}
 
-	public int getHeight() {
-		return height;
+	public AbstractAction rightT() {
+		return new AbstractAction() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+
+				increaseRotationAngle();
+
+			}
+		};
 	}
 
-	public void setHeight(int height) {
-		this.height = height;
+	public AbstractAction leftT() {
+		return new AbstractAction() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+
+				decreaseRotationAngle();
+
+			}
+		};
 	}
 
-	public double getX() {
-		return x;
-	}
+	public AbstractAction fire() {
+		return new AbstractAction() {
 
-	public void setX(double x) {
-		this.x = x;
-	}
+			@Override
+			public void actionPerformed(ActionEvent e) {
 
-	public double getY() {
-		return y;
+				GamePanel.gunList.add(new Gun(getShipNoseX(), getShipNosey(), rotationAngle));
+			}
+		};
 	}
-
-	public void setY(double y) {
-		this.y = y;
-	}
-
 }
